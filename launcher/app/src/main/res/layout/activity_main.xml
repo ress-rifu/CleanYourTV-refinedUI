@@ -192,12 +192,11 @@
                     android:layout_height="wrap_content"
                     android:singleLine="true"
                     android:ellipsize="end"
-                    android:layout_marginStart="4dp"
-                    android:textColor="#8CFFFFFF"
-                    android:textSize="12sp"
-                    android:fontFamily="@string/font_medium"
-                    android:letterSpacing="0.22"
-                    android:textAllCaps="true" />
+                    android:layout_marginStart="2dp"
+                    android:textColor="#D9FFFFFF"
+                    android:textSize="20sp"
+                    android:fontFamily="@string/font_regular"
+                    android:letterSpacing="0.01" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -347,6 +346,14 @@
                     android:ellipsize="end"
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
+                    android:id="@+id/btnSystem"
+                    style="@style/TopButton"
+                    android:visibility="gone"
+                    android:singleLine="true"
+                    android:drawableStart="@drawable/ic_memory"
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView

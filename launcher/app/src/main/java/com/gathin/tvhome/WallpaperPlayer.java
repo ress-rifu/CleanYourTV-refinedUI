@@ -59,6 +59,11 @@ final class WallpaperPlayer {
     private final Map<String, Set<String>> moods;
     /** config.xml latitude and longitude for the sun's times, and today's {sunrise, sunset} once worked out. */
     private final String latitude, longitude;
+    /** wallpaper_fade: the picture fades in from black instead of appearing in one frame. */
+    private final boolean fade;
+    /** Home came back while the picture was still being decoded: fade it in once it is shown. */
+    private boolean fadePending;
+    private static final int FADE_MS = 520;
     private LocalDate sunDay;
     private int[] sun;
 
@@ -73,6 +78,7 @@ final class WallpaperPlayer {
         order = config.wallpaperOrder;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
         moods = config.wallpaperMoods;
+        fade = config.animations && !config.reducedMotion && context.getResources().getBoolean(R.bool.wallpaper_fade);
         latitude = moods.isEmpty() ? "" : context.getString(R.string.latitude);
         longitude = moods.isEmpty() ? "" : context.getString(R.string.longitude);
         // Playback state belongs to one collection. Changing the collection starts from its first
@@ -137,6 +143,22 @@ final class WallpaperPlayer {
         active = false;
     }
 
+    /**
+     * Home is coming back from another app: start the picture from black and fade it in. A picture Android made
+     * Home drop is still being decoded; it fades in from show() as soon as it is ready.
+     */
+    void fadeIn() {
+        if (!fade) return;
+        if (current == null) {
+            fadePending = true;
+            return;
+        }
+        image.animate().cancel();
+        image.setAlpha(0f);
+        image.animate().alpha(1f).setDuration(FADE_MS)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f)).start();
+    }
+
     /** Drops the wallpaper texture when Home is hidden and Android asks the process to free memory. */
     void releaseForMemoryPressure() {
         if (current == null) return;
@@ -145,6 +167,8 @@ final class WallpaperPlayer {
         // let Android reclaim its native buffer after rendering releases it instead of recycling it mid-frame.
         current = null;
         displayed = "";
+        image.animate().cancel();
+        image.setAlpha(0f);   // the decode on return fades it in again
         root.setBackgroundColor(backgroundColor);
     }
 
@@ -266,6 +290,11 @@ final class WallpaperPlayer {
         // The wallpaper covers the whole root; avoid drawing the fallback colour under it.
         root.setBackground(null);
         image.setImageBitmap(bitmap);
+        // Onto an empty screen (Home's start, or after the picture was dropped for memory): fade in from black.
+        if (old == null || fadePending) {
+            fadePending = false;
+            fadeIn();
+        }
         if (old != null && old != bitmap) image.postDelayed(old::recycle, 500);
     }
 
@@ -291,6 +320,8 @@ final class WallpaperPlayer {
             Bitmap decoded = BitmapFactory.decodeFile(file.getPath(), options);
             if (decoded == null) return null;
             if (dimColor != 0) new Canvas(decoded).drawColor(dimColor);
+            // The frosted glass paints a blurred copy of this picture behind every glass surface.
+            Frost.setFrom(decoded);
             // One copy in GPU memory instead of a software bitmap plus its texture; the decode stays off the UI
             // thread for rotations, and Home's return no longer uploads 4-8 MB to the GPU.
             Bitmap gpu = decoded.copy(Bitmap.Config.HARDWARE, false);

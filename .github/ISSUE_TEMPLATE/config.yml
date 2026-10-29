@@ -3,6 +3,9 @@ contact_links:
   - name: Samsung, LG, Roku or another non-Android TV?
     url: https://cleanyour.tv/not-android
     about: CleanYourTV can't run there. This guide turns off the tracking, step by step with your remote.
+  - name: A problem with the refined UI (glass, RAM pill, Settings panel, animations)?
+    url: https://github.com/ress-rifu/CleanYourTV-refinedUI/issues
+    about: This fork's own changes. Debloat lists, the tools and everything else belong to the upstream project below.
   - name: Question or "does it work on my TV?"
     url: https://github.com/Gathin23/cleanyourtv/discussions/categories/q-a
     about: Ask in Discussions. Issues are for bugs and TV lists.

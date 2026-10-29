@@ -11,11 +11,11 @@
     <string name="live_tv">Live TV</string>
     <string name="no_inputs">No inputs found</string>
     <string name="more_inputs">More inputs</string>
-    <string name="good_morning">Good morning</string>
-    <string name="good_afternoon">Good afternoon</string>
-    <string name="good_evening">Good evening</string>
+    <string name="good_morning">Good Morning</string>
+    <string name="good_afternoon">Good Afternoon</string>
+    <string name="good_evening">Good Evening</string>
     <string name="good_forenoon">Good late morning</string>
-    <string name="good_night">Good night</string>
+    <string name="good_night">Good Night</string>
     <string name="festival_dussehra_greeting">Happy Dussehra</string>
     <string name="festival_diwali_greeting">Happy Diwali</string>
     <string name="ethernet">Ethernet</string>
@@ -40,6 +40,19 @@
     <string name="stats_cpu">CPU %1$d%%</string>
     <string name="stats_memory">Memory %1$d / %2$d MB</string>
     <string name="stats_storage">Storage %1$s free</string>
+    <string name="system_pill" translatable="false">RAM %1$d%% · Storage %2$d%%</string>
+    <string name="system_close_all" translatable="false">Close all apps</string>
+    <string name="system_close" translatable="false">Close</string>
+    <string name="system_no_apps" translatable="false">No apps to close</string>
+    <string name="system_freed" translatable="false">Freed %1$d MB</string>
+    <string name="system_free_now" translatable="false">%1$d MB free</string>
+    <string name="system_clean" translatable="false">Clean storage</string>
+    <string name="system_clean_confirm" translatable="false">Press OK again to delete</string>
+    <string name="system_cleaning" translatable="false">Cleaning…</string>
+    <string name="system_clean_size" translatable="false">%1$s</string>
+    <string name="system_clean_nothing" translatable="false">Nothing to clean</string>
+    <string name="system_clean_no_access" translatable="false">No storage access</string>
+    <string name="system_cleaned" translatable="false">Storage cleaned: %1$s freed</string>
     <string name="storage_gb_whole">%1$.0f GB</string>
     <string name="storage_gb_decimal">%1$.1f GB</string>
     <string name="dream_name">Clock</string>
@@ -66,7 +79,7 @@
     <string name="follow_theme">Follow theme (reset on-TV choices)</string>
     <string name="follow_theme_hint">Uses the current theme or built-in layout and motion settings. Pushing or resetting a theme also clears your on-TV choices.</string>
     <string name="tv_settings">TV system settings</string>
-    <string name="quick_picture">Display</string>
+    <string name="quick_picture">Picture &amp; sound</string>
     <string name="quick_network">Network</string>
     <string name="quick_apps">Apps</string>
     <string name="quick_apps_hint">Re-enable</string>

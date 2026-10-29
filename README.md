@@ -20,8 +20,46 @@
 </p>
 
 <p align="center">
-  <a href="docs/PRESS.md"><img src="docs/card.jpg" alt="359 TV models · 97 brands · 30 languages · 532 KB launcher. Featured in TechCrunch, TechRadar, Tom's Guide, Mashable, Android Authority, XDA, FlatpanelsHD, It's FOSS, Phandroid, GIGAZINE, Xataka, WinFuture, Frandroid, Macitynet, Techaeris, TechPP and 298 more: 314 articles from 44 countries. Before: stock Google TV home with a sponsored ad. After: the Clean Your TV launcher." width="800"></a>
+  <a href="docs/PRESS.md"><img src="docs/card.jpg" alt="360 TV models · 98 brands · 30 languages · 532 KB launcher. Featured in TechCrunch, TechRadar, Tom's Guide, Mashable, Android Authority, XDA, FlatpanelsHD, It's FOSS, Phandroid, GIGAZINE, Xataka, WinFuture, Frandroid, Macitynet, Techaeris, TechPP and 298 more: 314 articles from 44 countries. Before: stock Google TV home with a sponsored ad. After: the Clean Your TV launcher." width="800"></a>
 </p>
+
+## CleanYourTV refined UI (this fork)
+
+This repository is **CleanYourTV refined UI** by [ress-rifu](https://github.com/ress-rifu), a fork of
+[**Gathin23/cleanyourtv**](https://github.com/Gathin23/cleanyourtv). All credit for CleanYourTV itself (the
+debloat tools and their safety checks, the TV lists, the reference launcher, the docs and the community behind
+them) goes to [Gathin23](https://github.com/Gathin23) and the project's contributors. This fork keeps all of
+it, under the same MIT licence, and changes the launcher's look and feel. Everything below this section is the
+upstream README; the quick start clones this fork so you get the refined UI.
+
+**What this fork changes**
+
+| Change | What you see | Switch in [`config.xml`](launcher/app/src/main/res/values/config.xml) |
+|---|---|---|
+| **Frosted glass everywhere** | Top pills, every dropdown, the dock band and the Settings panel are frosted glass showing a blurred copy of your wallpaper. The blur is computed once per picture (a 128x72 copy), never live, so it costs almost nothing on a 1 GB TV. Text on glass and on the wallpaper gets a soft shadow so it stays readable. | `frost_glass`, `dock_glass` |
+| **RAM / Storage pill** | Replaces the Wi-Fi pill and shows RAM and storage in use. OK lists the apps opened since the TV started: close one, or **Close all apps**. | `show_system_pill`, `show_network_pill` |
+| **Clean storage** | In the same menu: shows how much it would free, asks for a second OK, then deletes Downloads, apps' external cache folders and thumbnail folders. It never touches app data or sign-ins. | (part of `show_system_pill`) |
+| **Settings panel** | The Settings pill opens a frosted panel that slides in from the right over Home, instead of the TV's Settings app (which is opaque on many sets and blacks Home out). Picture & sound opens the TV's own picture menu where there is one. | `settings_pill_panel`, `picture_menu_component` |
+| **Full-screen app grid** | Press Down from the dock: the greeting, clock and pills slide up off the screen, the apps fill it, and a small frosted clock sits top right. Up or Home brings the header back. | `grid_full_screen` |
+| **Boot entrance** | After switching on, the wallpaper fades in, then the greeting, clock, date and pills one after another, then the tiles rise into the dock one by one, then the highlight and title. | `boot_pop_entrance` |
+| **Smoother motion** | The wallpaper fades in when you come back from an app; an app's window grows out of the tile you opened it from; pills that appear fade in; the greeting cross-fades. | `wallpaper_fade`, `launch_zoom` |
+| **Greeting with your name** | "Good Morning, *name*" in title case, left-aligned with the clock. The prompt asks you for the name. | `greeting_name` |
+
+All switches are on by default; set one to `false` and rebuild to go back to the upstream behaviour. The RAM
+pill needs two permissions the upstream launcher does not have: usage access (to list recently used apps) and
+storage access (for Clean storage), plus `KILL_BACKGROUND_PROCESSES`. [`launcher/build-and-install.sh`](launcher/build-and-install.sh)
+grants them over ADB. The launcher still has no network permission.
+
+The prompt ([`PROMPT.md`](PROMPT.md)) also asks for the name to show in the greeting and for a wallpaper, and
+carries what was learned on a Singer ATV R1 (Realtek, Android TV 9), whose list is in
+[`examples/singer-atv-r1`](examples/singer-atv-r1/debloat.txt): keep the partner customizer, voice typing needs
+the Assistant, the YouTube remote button there cannot be remapped, and how to free storage without touching
+your files.
+
+New and changed files: `Frost.java` and `SystemPill.java` (new), `MainActivity.java`, `AppAdapter.java`,
+`DockDecoration.java`, `WallpaperPlayer.java`, `QuickSettingsActivity.java`, the main and quick-settings layouts,
+`config.xml`, `strings.xml`, `AndroidManifest.xml`, two animations (`tile_pop`, `pop_overshoot`), two icons
+(`ic_memory`, `ic_clean`) and the install scripts.
 
 ## Start here
 
@@ -75,7 +113,7 @@ Any of these work: Claude Code (on [0G Private Computer](https://pc.0g.ai/?utm_s
 | Where | What to do |
 |---|---|
 | **1. On the TV** | Settings → Device Preferences → About → press OK on **Build** seven times → back → Developer options → **USB debugging** on. If you see a Network or ADB debugging toggle, turn that on too. Keep the TV on. |
-| **2. On your computer** | Clone the repo and open that folder in your assistant (`git clone https://github.com/Gathin23/cleanyourtv`), then paste [`PROMPT.md`](PROMPT.md) and fill in your TV model. |
+| **2. On your computer** | Clone the repo and open that folder in your assistant (`git clone https://github.com/ress-rifu/CleanYourTV-refinedUI`), then paste [`PROMPT.md`](PROMPT.md) and fill in your TV model. |
 | **3. Follow along** | Accept "Allow USB debugging?" on the TV, then answer the checklist: which apps you use, the dock size and app order, whether to keep the voice assistant, Chromecast and updates. |
 
 Cloning matters: the assistant reuses this repo's `tools/disable.sh` and `launcher/build-and-install.sh`
@@ -137,13 +175,13 @@ most lists, each linked to its models on the website:
 | [FFalcon](https://cleanyour.tv/tvs?q=FFalcon) · 2 | [Hitachi](https://cleanyour.tv/tvs?q=Hitachi) · 2 | [Insignia Fire TV](https://cleanyour.tv/tvs?q=Insignia%20Fire%20TV) · 2 | [Kalley](https://cleanyour.tv/tvs?q=Kalley) · 2 | [Kogan](https://cleanyour.tv/tvs?q=Kogan) · 2 | [Nokia](https://cleanyour.tv/tvs?q=Nokia) · 2 |
 
 <details>
-<summary>+53 more brands and 14 projector brands</summary>
+<summary>+54 more brands and 14 projector brands</summary>
 
 **onn** 2 · **RockTek** 2 · **Sankey** 2 · **Sber** 2 · **Vidda** 2 ·
 Acer · AiPro2K · AIWA · AQUA · Artel · ASUS · Beko · BGH · Caxium · Cecotec · Challenger · Compac · Dcolor · Dialog ·
 DYON · Freebox · Home+ · Impex · INCLO · Karbonn · Koryo · KTC · Liberton · Lumio · Master-G · MECOOL · MTC · Next ·
-Noblex · OK. · OPPO · Panavox · PEAQ · Polytron · PPTV · PRISM+ · Prosonic · SANYO · Seleco · Super General · Síragon ·
-Tele System · TiVo · Tornado · Turkcell · Tuvio · Verizon · Vision ·
+Noblex · OK. · OPPO · Panavox · PEAQ · Polytron · PPTV · PRISM+ · Prosonic · SANYO · Seleco · Singer · Super General ·
+Síragon · Tele System · TiVo · Tornado · Turkcell · Tuvio · Verizon · Vision ·
 Alwtniet, Anker Nebula, BYINTEK, Epson, Formovie, Gadnic, HOTACK, HY320, JMGO, Magcubic, Portronics, Stellamore, Wanbo and XGIMI projectors
 
 </details>
@@ -264,8 +302,9 @@ debloat list. What the audit cannot do is prove intent: [docs/privacy.md](docs/p
 
 ## The launcher
 
-A small native home screen for Android TV: **about 532 KB**, plain Java, built for TVs with 1 GB of RAM.
-No blur, no video, no network permission, no background services. The **TV** needs Android 8.0 (API 26)
+A small native home screen for Android TV: **about 560 KB** in this fork, plain Java, built for TVs with 1 GB of
+RAM. No live blur (the fork's frosted glass is blurred once per picture), no video, no network permission, no
+background services. The **TV** needs Android 8.0 (API 26)
 or newer, the `minSdk` in [`launcher/app/build.gradle`](launcher/app/build.gradle); what is left on an older
 set is in [Troubleshooting](docs/TROUBLESHOOTING.md).
 
@@ -495,5 +534,7 @@ The people whose work is in this repo:
 
 ## Licence
 
-MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
+MIT, see [`LICENSE`](LICENSE). CleanYourTV is © its original author and contributors
+([Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv)); the refined UI changes in this fork are by
+[ress-rifu](https://github.com/ress-rifu) and released under the same licence. The Outfit typeface is under the SIL Open Font License, see
 `launcher/FONT-LICENSE-OFL.txt`.

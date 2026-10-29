@@ -34,6 +34,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final boolean singleRow;
     /** dock_band_all: in a single row, the band runs behind every app instead of the dock apps only. */
     private final boolean bandAll;
+    /** dock_glass: frosted glass (a blurred copy of the wallpaper) instead of the light white band. */
+    private final Frost.Painter frost;
+    private final float[] at = new float[2];
 
     /**
      * @param translucent the cinematic shelf's band: the artwork and the glow show through it.
@@ -55,6 +58,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         this.lightGlass = lightGlass;
         this.evenPadding = evenPadding;
         this.bandVisible = bandVisible;
+        this.frost = lightGlass ? new Frost.Painter(density, 0x33000000) : null;
         band.setColor(translucent ? 0x8C121014 : (Math.round(opacity * 2.55f) << 24) | 0x141416);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
@@ -139,6 +143,13 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             rect.right = Math.min(rect.right, parent.getWidth() - density);
         }
         rect.bottom += namesRoom;
+        if (frost != null) {
+            Frost.watch(parent);
+            Frost.settledOnScreen(parent, at);
+            android.util.DisplayMetrics m = parent.getResources().getDisplayMetrics();
+            frost.draw(c, rect, radius, at[0], at[1], m.widthPixels, m.heightPixels);
+            return;
+        }
         if (lightGlass && (rect.top != shaderTop || rect.bottom != shaderBottom)) {
             // The pills' glass (pill_bg: white, 18% fading to 8%), a little fainter over this much larger area.
             band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x24FFFFFF, 0x0DFFFFFF,

@@ -70,7 +70,7 @@ o [Gemini CLI](https://github.com/google-gemini/gemini-cli).
 | Passo | Cosa fare |
 |---|---|
 | 1. Sulla TV | Vai in **Impostazioni → Sistema (o Preferenze dispositivo) → Informazioni**, premi OK sette volte su **Build**, torna indietro, apri **Opzioni sviluppatore** e attiva il **debug USB**. Se c'è anche un interruttore per il debug di rete / ADB, attivalo. I nomi dei menu cambiano da TV a TV. |
-| 2. Sul computer | Clona il repository e apri quella cartella nell'assistente (`git clone https://github.com/Gathin23/cleanyourtv`), poi incolla il contenuto di [`PROMPT.md`](PROMPT.md) e indica il modello della tua TV. |
+| 2. Sul computer | Clona il repository e apri quella cartella nell'assistente (`git clone https://github.com/ress-rifu/CleanYourTV-refinedUI`), poi incolla il contenuto di [`PROMPT.md`](PROMPT.md) e indica il modello della tua TV. |
 | 3. Rispondi all'assistente | Premi **Consenti** quando la TV chiede di autorizzare il debug, poi di' all'assistente quali app usi, quali vuoi nel dock e se tenere assistente vocale, Chromecast e aggiornamenti di sistema. |
 | 4. Verifica | Segui la procedura di backup, pulizia e installazione, poi prova ad aprire le app, i tasti del telecomando, il cambio di ingresso HDMI e il ripristino. |
 

@@ -46,6 +46,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.util.Log;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -180,6 +181,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
     private TextView btnWifi;
+    /** grid_full_screen is on, and focus is below the dock right now (header away, small clock showing). */
+    private boolean gridFullScreen, gridMode;
+    private View miniClock;
+    /** In grid mode the focused row keeps this far from the top of the screen: under the small clock. */
+    private static final int GRID_TOP_DP = 84;
+    /** boot_pop_entrance: this start is the first since the TV booted, and its entrance has not played yet. */
+    private boolean popEntrance;
+    /** The grid still holds tile_pop as its layout animation (swapped for tile_enter before the next entrance). */
+    private boolean popAnimationSet;
+    /** The boot entrance plays only while the TV is this fresh: Home's first start after switching on. */
+    private static final long POP_BOOT_WINDOW_MS = 5 * 60_000L;
+    /** The process's first entrance has been decided (a later recreate, or a restart of Home, is not a boot). */
+    private static boolean popDecided;
+    /** startPopEntrance ran before Home had window focus (the boot animation still on screen): it waits for focus. */
+    private boolean popWaitingForFocus;
+    /** The highlight, name and glow hidden for the entrance, shown again once the tiles have landed. */
+    private List<View> popHeld;
+    /** tile_pop's 560 ms; each tile starts this fraction of it after the one before (about 73 ms). */
+    private static final int POP_MS = 560;
+    private static final float POP_STAGGER = 0.13f;
+    /** How long focus takes to park the dock at the bottom (a smooth scroll) before the tiles rise. */
+    private static final int POP_SETTLE_MS = 450;
+    /** show_system_pill: RAM and storage in use; refreshed every 30 s while Home is resumed. */
+    private TextView btnSystem;
+    private static final long SYSTEM_PILL_MS = 30_000;
+    private final Runnable refreshSystemPill = new Runnable() {
+        @Override
+        public void run() {
+            int ram = SystemPill.ramPercent(), storage = SystemPill.storagePercent();
+            // Straight in, not fadeText: fading the pill took its glass and outline with the text, so it vanished.
+            String label = getString(R.string.system_pill, ram, storage);
+            if (ram >= 0 && storage >= 0 && !TextUtils.equals(btnSystem.getText(), label)) btnSystem.setText(label);
+            handler.removeCallbacks(this);
+            if (resumed) handler.postDelayed(this, SYSTEM_PILL_MS);
+        }
+    };
     /** The network pill's icon as last set, so a refresh that changes nothing does not lay the top bar out again. */
     private int wifiIcon;
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
@@ -640,8 +677,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
         if (animations && !reducedMotion) {
-            grid.setLayoutAnimation(new LayoutAnimationController(
-                    AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
+            // boot_pop_entrance: the first Home after a boot has the tiles rise one by one; later rebuilds (after
+            // Android reclaimed memory, or a new app) keep the quiet entrance.
+            // Not Settings.Global.BOOT_COUNT: during boot Home starts before Android counts the boot.
+            popEntrance = getResources().getBoolean(R.bool.boot_pop_entrance) && !popDecided
+                    && SystemClock.elapsedRealtime() < POP_BOOT_WINDOW_MS;
+            popDecided = true;
+            Log.i("TvHome.Entrance", "pop=" + popEntrance + " uptime=" + SystemClock.elapsedRealtime() / 1000 + "s");
+            grid.setLayoutAnimation(new LayoutAnimationController(AnimationUtils.loadAnimation(this,
+                    popEntrance ? R.anim.tile_pop : R.anim.tile_enter), popEntrance ? POP_STAGGER : 0.06f));
+            popAnimationSet = popEntrance;
         }
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
         dockApps = cfg.dockApps;
@@ -783,12 +828,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnClickListener(v -> {
             if (launcherSettingsButton) startActivityForResult(
                     new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+            else if (getResources().getBoolean(R.bool.settings_pill_panel)) {
+                // The frosted panel slides in over Home; the TV's own Settings is opaque and blacks Home out.
+                startActivity(new Intent(this, QuickSettingsActivity.class));
+                overridePendingTransition(0, 0);
+            }
             else open(systemIntent(Settings.ACTION_SETTINGS));
         });
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
         if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
+        btnSystem = findViewById(R.id.btnSystem);
+        gridFullScreen = getResources().getBoolean(R.bool.grid_full_screen);
+        btnSystem.setFontFeatureSettings("tnum");   // even-width digits: the pill keeps its width as the figures change
+        if (getResources().getBoolean(R.bool.show_system_pill)) {
+            btnSystem.setVisibility(View.VISIBLE);
+            btnSystem.setOnClickListener(v -> showSystemApps());
+        }
         showInputsPill = cfg.showInputsPill;
         showInputsMenuRow = cfg.showInputsPill;
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
@@ -863,13 +920,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
+        btnSystem.setOnKeyListener(pillKeys);
+        if (getResources().getBoolean(R.bool.frost_glass)) {
+            for (View pill : new View[]{btnInputs, btnWifi, btnSystem, btnVpn, btnReorder, btnLibraryTop, btnSettings}) {
+                pill.setBackground(frostPill());
+            }
+            for (View button : topAppButtons) button.setBackground(frostPill());
+        }
+        // White text straight on the picture: a soft shadow keeps it readable on light parts of a wallpaper.
+        for (int id : new int[]{R.id.greeting, R.id.clock, R.id.ampm, R.id.date, R.id.heroName}) {
+            View text = findViewById(id);
+            if (text instanceof TextView) ((TextView) text).setShadowLayer(6 * density, 0, density, 0x73000000);
+        }
+        if (animations && !reducedMotion) {
+            // A pill that appears or goes (Inputs once the TV lists its inputs, VPN) fades instead of popping.
+            android.animation.LayoutTransition fade = new android.animation.LayoutTransition();
+            fade.setDuration(280);
+            ((ViewGroup) findViewById(R.id.topButtons)).setLayoutTransition(fade);
+        }
         btnVpn.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnVpn, btnReorder, btnLibraryTop, btnSettings));
+            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnSystem, btnVpn, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -989,7 +1064,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             // Still on screen (the quick panel was over it, or Home was already in front): the tiles are current,
             // so only go back to the first one; rebuilding would replay the entrance animation for nothing.
-            grid.post(() -> focusTile(0));
+            grid.post(() -> {
+                focusTile(0);
+                // Home from deep in the grid: the first tile takes focus before scrollToPosition's layout has moved
+                // the rows, so the dock was parked against stale positions and stayed mid-screen. Park it again once
+                // the layout is done; a dock already in place does not move.
+                grid.post(() -> {
+                    RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(0);
+                    View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
+                    if (card != null && card.isFocused()) onTileFocused(0, card);
+                });
+            });
         }
     }
 
@@ -1011,6 +1096,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        if (btnSystem.getVisibility() == View.VISIBLE) refreshSystemPill.run();
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
@@ -1131,16 +1217,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroArt.setAlpha(0f);
         }
         if (rebuild) reloadTiles();
+        boolean pop = false;
         if (animate && entrance && animations && !reducedMotion) {
-            grid.scheduleLayoutAnimation();
-            // A rebuild redraws the grid anyway; without one the entrance needs a draw to start.
-            if (!rebuild) grid.invalidate();
+            pop = popEntrance;
+            if (pop) {
+                // Once per boot: later rebuilds go back to the quiet entrance.
+                popEntrance = false;
+                // The tiles stay out of sight until focus has parked the dock at the bottom (startPopEntrance), and
+                // the greeting, clock, date and pills until Home is on screen, so all of it fades in.
+                grid.animate().cancel();
+                grid.setAlpha(0f);
+                for (View v : headerViews()) v.setAlpha(0f);
+            } else {
+                // After the boot entrance, the quiet one. Swapped only here: setLayoutAnimation arms the next draw itself.
+                if (popAnimationSet) {
+                    popAnimationSet = false;
+                    grid.setLayoutAnimation(new LayoutAnimationController(
+                            AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
+                }
+                grid.scheduleLayoutAnimation();
+                // A rebuild redraws the grid anyway; without one the entrance needs a draw to start.
+                if (!rebuild) grid.invalidate();
+            }
         }
 
         if (restoreFocus) {
             // Keep a focused footer at the end even when the app count changes.
             if (restoreLibrary) grid.post(this::focusLibrary);
-            else restoreFocus();
+            else {
+                restoreFocus();
+                if (pop) startPopEntrance();
+            }
         } else {
             // A package change must not steal focus from a top button or the Inputs popup.
             int pos = adapter.positionOf(returnKey);
@@ -1152,6 +1259,81 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             startPendingSettingsReorder();
             showCardPrompt();
         }
+    }
+
+    /**
+     * boot_pop_entrance, after restoreFocus: the grid's first layout puts the dock high up and focus then scrolls it to
+     * the bottom, so the tiles rise only once that scroll is over, straight into their places. The highlight, the big
+     * name and the glow are held back until the last tile has landed, then fade up to what their own code chose.
+     */
+    private void startPopEntrance() {
+        if (popHeld == null) {
+            popHeld = new ArrayList<>();
+            for (View v : new View[]{glass, hero, ambient}) {
+                if (v.getVisibility() != View.VISIBLE) continue;
+                v.setVisibility(View.INVISIBLE);
+                popHeld.add(v);
+            }
+        }
+        // At boot Home is created under the boot animation; rising tiles nobody sees would be wasted. Wait for focus.
+        if (!hasWindowFocus()) {
+            popWaitingForFocus = true;
+            Log.i("TvHome.Entrance", "waiting for window focus");
+            return;
+        }
+        popWaitingForFocus = false;
+        Log.i("TvHome.Entrance", "tiles rising");
+        // The header first, one line after another and each pill after the last, rising a little as it fades in.
+        List<View> header = headerViews();
+        for (int i = 0; i < header.size(); i++) {
+            View v = header.get(i);
+            v.setTranslationY(10 * density);
+            v.animate().alpha(1f).translationY(0f).setStartDelay(i * 70L).setDuration(420)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).withLayer()
+                    .withEndAction(() -> v.animate().setStartDelay(0)).start();
+        }
+        List<View> held = popHeld;
+        popHeld = null;
+        grid.postDelayed(() -> {
+            // Each tile rises as one texture: fading a tile without a layer redraws it off-screen on every frame.
+            List<View> layered = new ArrayList<>();
+            for (int i = 0; i < grid.getChildCount(); i++) {
+                View child = grid.getChildAt(i);
+                if (child.getLayerType() != View.LAYER_TYPE_NONE) continue;
+                child.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                layered.add(child);
+            }
+            grid.animate().alpha(1f).setDuration(240).start();   // the dock band fades in under the rising tiles
+            grid.scheduleLayoutAnimation();
+            grid.invalidate();
+            int tiles = Math.max(1, grid.getChildCount());
+            long landed = (long) ((tiles - 1) * POP_STAGGER * POP_MS) + POP_MS - 100;
+            grid.postDelayed(() -> {
+                for (View v : held) {
+                    float target = v.getAlpha();
+                    v.animate().cancel();
+                    v.setAlpha(0f);
+                    v.setVisibility(View.VISIBLE);
+                    v.animate().alpha(target).setDuration(320).start();
+                }
+                for (View child : layered) child.setLayerType(View.LAYER_TYPE_NONE, null);
+            }, landed);
+        }, POP_SETTLE_MS);
+    }
+
+    /** The greeting, clock and date lines (and the stats line), then the top bar's pills, in the order they fade in. */
+    private List<View> headerViews() {
+        List<View> views = new ArrayList<>();
+        ViewGroup left = (ViewGroup) clockBlock;
+        for (int i = 0; i < left.getChildCount(); i++) {
+            if (left.getChildAt(i).getVisibility() == View.VISIBLE) views.add(left.getChildAt(i));
+        }
+        if (stats != null && stats.getVisibility() == View.VISIBLE) views.add(stats);
+        ViewGroup bar = findViewById(R.id.topButtons);
+        for (int i = 0; i < bar.getChildCount(); i++) {
+            if (bar.getChildAt(i).getVisibility() == View.VISIBLE) views.add(bar.getChildAt(i));
+        }
+        return views;
     }
 
     /** True when PackageManager reports apps changed since the last rebuild (one binder call). */
@@ -1224,6 +1406,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        handler.removeCallbacks(refreshSystemPill);
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
@@ -1243,6 +1426,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (cardPrompt != null) cardPrompt.dismiss();
         if (appLibrary != null) appLibrary.close();
         if (openPopup != null) openPopup.dismiss();
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        // Back from an app: the wallpaper fades in from black instead of appearing in one frame.
+        wallpaperPlayer.fadeIn();
     }
 
     @Override
@@ -1281,6 +1471,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
+            if (popWaitingForFocus) grid.post(this::startPopEntrance);
             startPendingSettingsReorder();
             if (libraryFocusPending && appLibrary == null) focusLibrary();
             showCardPrompt();
@@ -1771,15 +1962,101 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (!animations || reducedMotion) grid.scrollBy(0, dy);
                 else grid.smoothScrollBy(0, dy);
             }
+            setGridMode(false);
             showHero(position, scroll ? r.top - dy : r.top);
         } else {
             // Below the dock (or in a plain grid) the glow follows the tile without the big name; letting it
             // fade out left the grid on plain black.
             showGlowOnly(position);
-            // Scroll just enough so the whole glass (not only the tile) is visible.
-            revealRect.set(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, revealRect, reducedMotion);
+            boolean entering = gridFullScreen && dockRow && !gridMode;
+            setGridMode(gridFullScreen && dockRow);
+            if (entering) {
+                // grid_full_screen: from the dock into the grid, the dock row moves up to just under the small clock,
+                // whole (with few apps the grid cannot scroll it further, and half a dock looked broken), and the
+                // rows below fill the screen. Its band reaches 14dp above the tiles.
+                RecyclerView.ViewHolder first = grid.findViewHolderForAdapterPosition(0);
+                View dockCard = first == null ? null : first.itemView.findViewById(R.id.card);
+                int dy;
+                if (dockCard != null) {
+                    Rect dock = new Rect(0, 0, dockCard.getWidth(), dockCard.getHeight());
+                    root.offsetDescendantRectToMyCoords(dockCard, dock);
+                    dy = dock.top - (int) ((GRID_TOP_DP + 14) * density);
+                } else {
+                    dy = r.top - (int) (GRID_TOP_DP * density) - (int) (pad * 2);
+                }
+                if (!animations || reducedMotion) grid.scrollBy(0, dy);
+                else grid.smoothScrollBy(0, dy);
+            } else {
+                // Scroll just enough so the whole glass (not only the tile) is visible; with the small clock up,
+                // never under it.
+                int top = gridMode ? (int) (GRID_TOP_DP * density) : (int) pad * 2;
+                revealRect.set(0, -top, item.getWidth(), item.getHeight() + (int) pad);
+                grid.requestChildRectangleOnScreen(item, revealRect, reducedMotion);
+            }
         }
+    }
+
+    /**
+     * grid_full_screen: below the dock the header (greeting, clock, date, pills) slides up out of the screen and a
+     * small frosted clock takes the top right; back on the dock the header slides down again and the clock goes.
+     */
+    private void setGridMode(boolean on) {
+        if (on == gridMode) return;
+        gridMode = on;
+        View header = (View) clockBlock.getParent();
+        ViewGroup pills = findViewById(R.id.topButtons);
+        // Hidden pills must not take focus.
+        pills.setDescendantFocusability(on ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS);
+        if (miniClock == null) miniClock = makeMiniClock();
+        boolean motion = animations && !reducedMotion;
+        float away = -(header.getBottom() + 24 * density);
+        header.animate().cancel();
+        miniClock.animate().cancel();
+        // The grid's wrapper clips at its top edge so rows scrolled up stay under the header; with the header away the
+        // rows may use the whole screen. The clip comes back once the header has slid in again.
+        ViewGroup wrapper = (ViewGroup) grid.getParent();
+        if (on) {
+            wrapper.setClipChildren(false);
+            header.animate().translationY(away).alpha(0f).setDuration(motion ? 380 : 0)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).withLayer().start();
+            miniClock.setVisibility(View.VISIBLE);
+            if (miniClock.getAlpha() == 0f) miniClock.setTranslationY(-12 * density);
+            miniClock.animate().alpha(1f).translationY(0f).setStartDelay(motion ? 140 : 0).setDuration(motion ? 320 : 0)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).withLayer()
+                    .withEndAction(() -> miniClock.animate().setStartDelay(0)).start();
+        } else {
+            header.animate().translationY(0f).alpha(1f).setDuration(motion ? 380 : 0)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).withLayer()
+                    .withEndAction(() -> {
+                        if (!gridMode) wrapper.setClipChildren(true);
+                    }).start();
+            miniClock.animate().alpha(0f).translationY(-12 * density).setStartDelay(0).setDuration(motion ? 200 : 0)
+                    .withLayer().withEndAction(() -> miniClock.setVisibility(View.GONE)).start();
+        }
+    }
+
+    /** The small clock in grid mode: the header clock's format, on a frosted pill, top right where the pills were. */
+    private View makeMiniClock() {
+        android.widget.TextClock clock = new android.widget.TextClock(this);
+        clock.setFormat12Hour("h:mm a");
+        clock.setFormat24Hour("HH:mm");
+        clock.setTextColor(Color.WHITE);
+        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        clock.setTypeface(getResources().getFont(R.font.outfit_regular));
+        clock.setShadowLayer(6 * density, 0, density, 0x73000000);
+        int h = (int) (18 * density), v = (int) (8 * density);
+        clock.setPadding(h, v, h, v);
+        clock.setBackground(getResources().getBoolean(R.bool.frost_glass)
+                ? new Frost.FrostDrawable(20 * density, density, 0x40000000) : null);
+        clock.setFocusable(false);
+        clock.setAlpha(0f);
+        clock.setVisibility(View.GONE);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
+        lp.topMargin = (int) (26 * density);
+        lp.setMarginEnd((int) (56 * density));
+        root.addView(clock, lp);
+        return clock;
     }
 
     /** Refits the glass to the focused holder once the grid layout and tile dimensions settle. */
@@ -2611,7 +2888,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
         } else {
-            greeting.setText(greetingName.isEmpty() ? getString(res)
+            fadeText(greeting, greetingName.isEmpty() ? getString(res)
                     : getString(R.string.greeting_with_name, getString(res), greetingName));
             greeting.setTextColor(greetingColor);
         }
@@ -3386,6 +3663,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private PopupWindow glassPopup(View panel, int width) {
+        if (getResources().getBoolean(R.bool.frost_glass)) {
+            panel.setBackground(new Frost.FrostDrawable(20 * density, density, 0x4D000000));
+            panel.setElevation(0f);   // a shadow would show through the glass as a dark ring
+        }
         final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
         popup.setOutsideTouchable(true);
@@ -3474,6 +3755,198 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setWidth(Math.max((int) (220 * density), Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
         rows.getChildAt(0).requestFocus();
+    }
+
+    /** show_system_pill: the apps opened since the TV started, each closed in place, and Close all on top. */
+    private void showSystemApps() {
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (300 * density));
+        PackageManager pm = getPackageManager();
+        List<String> apps = SystemPill.recentApps(this);
+        long free = SystemPill.availableMb();
+        if (apps.isEmpty()) {
+            View row = systemRow(rows, R.drawable.ic_memory, getString(R.string.system_no_apps), null);
+            if (free >= 0) setRowStatus(row, getString(R.string.system_free_now, free));
+            row.setOnClickListener(v -> popup.dismiss());
+            addCleanRow(rows, popup);
+        } else {
+            List<View> appRows = new ArrayList<>();
+            View all = systemRow(rows, R.drawable.ic_memory, getString(R.string.system_close_all), null);
+            if (free >= 0) setRowStatus(all, getString(R.string.system_free_now, free));
+            all.setOnClickListener(v -> {
+                popup.dismiss();
+                closeApps(new ArrayList<>(apps));
+            });
+            addCleanRow(rows, popup);
+            addSeparator(rows);
+            for (String pkg : apps) {
+                CharSequence label;
+                Drawable icon;
+                try {
+                    label = pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0));
+                    icon = pm.getApplicationIcon(pkg);
+                } catch (PackageManager.NameNotFoundException e) {
+                    continue;
+                }
+                View row = systemRow(rows, 0, label.toString(), icon);
+                setRowStatus(row, getString(R.string.system_close));
+                appRows.add(row);
+                row.setOnClickListener(v -> {
+                    // The row goes, focus moves to its neighbour, and the menu stays open for the next one.
+                    int at = appRows.indexOf(row);
+                    appRows.remove(row);
+                    apps.remove(pkg);
+                    row.setFocusable(false);
+                    row.animate().alpha(0f).setDuration(160).withEndAction(() -> rows.removeView(row)).start();
+                    closeApps(Collections.singletonList(pkg));
+                    handler.postDelayed(() -> {
+                        long now = SystemPill.availableMb();
+                        if (now >= 0) setRowStatus(all, getString(R.string.system_free_now, now));
+                    }, 1000);
+                    if (appRows.isEmpty()) popup.dismiss();
+                    else appRows.get(Math.min(at, appRows.size() - 1)).requestFocus();
+                });
+            }
+        }
+        dropIn(popup, panel, btnSystem, Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /**
+     * Clean storage: the size of what it would delete (SystemPill.junkRoots: Downloads, apps' external caches,
+     * thumbnails), read in the background; OK asks once more, a second OK deletes and says how much was freed.
+     */
+    private void addCleanRow(LinearLayout rows, PopupWindow popup) {
+        View row = systemRow(rows, R.drawable.ic_clean, getString(R.string.system_clean), null);
+        TextView title = row.findViewById(R.id.title);
+        boolean access = checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+        if (!access) {
+            setRowStatus(row, getString(R.string.system_clean_no_access));
+            return;
+        }
+        setRowStatus(row, "…");
+        final long[] junk = {-1};
+        final int[] stage = {0};   // 0 idle, 1 waiting for the second OK, 2 cleaning
+        new Thread(() -> {
+            long bytes = SystemPill.junkBytes(this);
+            handler.post(() -> {
+                junk[0] = bytes;
+                if (popup.isShowing()) setRowStatus(row, bytes > 0 ? formatSize(bytes) : getString(R.string.system_clean_nothing));
+            });
+        }, "junk-size").start();
+        Runnable revert = () -> {
+            if (stage[0] != 1) return;
+            stage[0] = 0;
+            fadeText(title, getString(R.string.system_clean));
+        };
+        row.setOnClickListener(v -> {
+            if (junk[0] <= 0 || stage[0] == 2) return;
+            if (stage[0] == 0) {
+                stage[0] = 1;
+                fadeText(title, getString(R.string.system_clean_confirm));
+                handler.postDelayed(revert, 5000);
+                return;
+            }
+            stage[0] = 2;
+            handler.removeCallbacks(revert);
+            fadeText(title, getString(R.string.system_cleaning));
+            new Thread(() -> {
+                long freed = SystemPill.cleanJunk(this);
+                handler.post(() -> {
+                    Toast.makeText(this, getString(R.string.system_cleaned, formatSize(freed)), Toast.LENGTH_LONG).show();
+                    if (btnSystem.getVisibility() == View.VISIBLE) refreshSystemPill.run();
+                    if (popup.isShowing()) popup.dismiss();
+                });
+            }, "junk-clean").start();
+        });
+    }
+
+    private static String formatSize(long bytes) {
+        double mb = bytes / (1024.0 * 1024);
+        return mb >= 1024 ? String.format(java.util.Locale.US, "%.1f GB", mb / 1024)
+                : String.format(java.util.Locale.US, "%d MB", Math.round(mb));
+    }
+
+    /** The unfocused pill as frosted glass; focused and activated keep pill_bg's solid white and blue. */
+    private Drawable frostPill() {
+        float r = 21 * density;
+        android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+        android.graphics.drawable.GradientDrawable focused = new android.graphics.drawable.GradientDrawable();
+        focused.setColor(0xF5FFFFFF);
+        focused.setCornerRadius(r);
+        android.graphics.drawable.GradientDrawable activated = new android.graphics.drawable.GradientDrawable();
+        activated.setColor(0x596EC1FF);
+        activated.setStroke(Math.round(1.5f * density), 0xFF6EC1FF);
+        activated.setCornerRadius(r);
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_activated}, activated);
+        states.addState(new int[]{}, new Frost.FrostDrawable(r, density, 0x40000000));
+        // No fade between the states: the text colour (pill_text) switches at once, and a fading background left dark
+        // text on dark glass for a moment.
+        return states;
+    }
+
+    /** New text fades in over the old instead of replacing it in one frame; the first text, or off screen, is set at once. */
+    private void fadeText(TextView view, CharSequence text) {
+        if (TextUtils.equals(view.getText(), text)) return;
+        if (!animations || reducedMotion || !resumed || view.getText().length() == 0 || !view.isShown()) {
+            view.setText(text);
+            return;
+        }
+        view.animate().alpha(0.15f).setDuration(140).withEndAction(() -> {
+            view.setText(text);
+            view.animate().alpha(1f).setDuration(220).start();
+        }).start();
+    }
+
+    private View systemRow(LinearLayout rows, int iconRes, String title, Drawable appIcon) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ImageView icon = row.findViewById(R.id.icon);
+        if (appIcon != null) {
+            icon.setImageTintList(null);   // the app's own colours, not the pill tint
+            icon.setImageDrawable(appIcon);
+        } else {
+            icon.setImageResource(iconRes);
+        }
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        row.findViewById(R.id.status).setVisibility(View.GONE);
+        // The pill opens this menu on OK-down: its OK-up must not close every app through the first row.
+        final boolean[] pressed = {false};
+        row.setOnKeyListener((v, code, event) -> {
+            if (code != KeyEvent.KEYCODE_DPAD_CENTER && code != KeyEvent.KEYCODE_ENTER) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (event.getRepeatCount() == 0) pressed[0] = true;
+                return true;
+            }
+            boolean activate = pressed[0];
+            pressed[0] = false;
+            if (activate) v.performClick();
+            return true;
+        });
+        rows.addView(row);
+        return row;
+    }
+
+    private static void setRowStatus(View row, String text) {
+        TextView status = row.findViewById(R.id.status);
+        status.setText(text);
+        status.setVisibility(View.VISIBLE);
+    }
+
+    /** Closes the apps, then says how much memory came back once Android has reclaimed it. */
+    private void closeApps(List<String> packages) {
+        long before = SystemPill.availableMb();
+        for (String pkg : packages) SystemPill.close(this, pkg);
+        handler.postDelayed(() -> {
+            long freed = SystemPill.availableMb() - before;
+            if (before >= 0 && freed > 0) {
+                Toast.makeText(this, getString(R.string.system_freed, freed), Toast.LENGTH_SHORT).show();
+            }
+            if (btnSystem.getVisibility() == View.VISIBLE) refreshSystemPill.run();
+        }, 1000);
     }
 
     /** The header opens launcher settings directly; hold OK keeps the extra home actions available. */

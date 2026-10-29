@@ -252,7 +252,8 @@
          Xiaomi offers Chinese and English only). Empty, the default, follows the TV. A theme can set it ("locale"). -->
     <string name="locale" translatable="false"></string>
 
-    <!-- A name after the greeting: "Mr. Trịnh" shows GOOD MORNING, MR. TRỊNH. Empty: the greeting alone. -->
+    <!-- A name after the greeting: "Mr. Trịnh" shows Good Morning, Mr. Trịnh. Empty: the greeting alone. The prompt
+         asks the owner which name to show. -->
     <string name="greeting_name" translatable="false"></string>
     <!-- The greeting above the clock ("Good evening"). false hides it. Can also be set with "show_greeting" in a theme. -->
     <bool name="show_greeting">true</bool>
@@ -284,7 +285,7 @@
     <!-- The dock band as light frosted glass, like the Inputs, Wi-Fi and Settings pills, so a sky or wallpaper shows
          through it. false (the default) keeps the solid near-black band, or the cinematic shelf's dark glass. Can
          also be set with "dock_glass": true in a theme's config.json. -->
-    <bool name="dock_glass">false</bool>
+    <bool name="dock_glass">true</bool>
     <!-- Draw the dock band and its edge. false leaves the tiles floating on the wallpaper (config.xml dock_band). -->
     <bool name="dock_band">true</bool>
     <!-- Every app in one row: the dock apps first, the rest after them, and the row scrolls sideways when focus
@@ -330,7 +331,11 @@
 
     <!-- The Wi-Fi/Ethernet pill in the top bar. false hides it (on Android 14 with Location off it can
          only say "Wi-Fi", not the network name). Can also be set with "show_network_pill" in a theme. -->
-    <bool name="show_network_pill">true</bool>
+    <bool name="show_network_pill">false</bool>
+    <!-- A pill with RAM and storage in use, where the network pill was; OK lists the apps opened since the TV started
+         and closes their background processes, and offers Clean storage (Downloads, apps' external caches). Needs
+         the usage-access app-op and storage access, which launcher/build-and-install.sh grants over ADB. -->
+    <bool name="show_system_pill">true</bool>
     <!-- Apps shown as round buttons with their own logo in the top bar, left of the network pill, in this order.
          They leave the grid. Missing apps are skipped. Can also be set with "top_bar_apps" in a theme. -->
     <string-array name="top_bar_apps" translatable="false">
@@ -380,6 +385,22 @@
 
     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
     <bool name="animations">true</bool>
+    <!-- Opening an app from a tile grows the app's window out of the tile to full screen. -->
+    <bool name="launch_zoom">true</bool>
+    <!-- The first Home after each boot: tiles rise from below one by one, then the focus highlight appears. -->
+    <bool name="boot_pop_entrance">true</bool>
+    <!-- The wallpaper fades in from black whenever Home comes back, instead of appearing in one frame. -->
+    <bool name="wallpaper_fade">true</bool>
+    <!-- Frosted glass (a blurred copy of the wallpaper) behind the top pills, every dropdown, the dock band
+         (with dock_glass) and the Settings panel; computed once per picture, no live blur. -->
+    <bool name="frost_glass">true</bool>
+    <!-- The Settings pill opens the frosted Settings panel, which slides in over Home, instead of the TV's Settings. -->
+    <bool name="settings_pill_panel">true</bool>
+    <!-- Below the dock the header slides up out of the screen, the rows fill it, and a small clock shows top right. -->
+    <bool name="grid_full_screen">true</bool>
+    <!-- The TV's own picture and sound menu, opened over the screen by the panel's Picture row; empty: Android's
+         display settings. Realtek Android TV boards: com.realtek.tv.actionmenu/.ActionMenuActivity -->
+    <string name="picture_menu_component" translatable="false">com.realtek.tv.actionmenu/.ActionMenuActivity</string>
     <bool name="advanced_effects">false</bool>
 
     <!-- Optional Default-home tile; keep this key for existing themes and tile-ordering work.

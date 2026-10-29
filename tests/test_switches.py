@@ -36,6 +36,10 @@ SCREENSHOT_WANTED = {
     "tile_menu", "top_menu", "vpn_app", "wallpaper", "wallpaper_captions", "wallpaper_dim",
     "wallpaper_moods", "wallpaper_order", "wallpaper_true_color", "wifi_label_width",
     "wifi_status_color",
+    # CleanYourTV refined UI (this fork): screenshots to follow, taken with a theme whose wallpaper may be
+    # published and with no personal greeting name.
+    "boot_pop_entrance", "frost_glass", "grid_full_screen", "launch_zoom", "picture_menu_component",
+    "settings_pill_panel", "show_system_pill", "wallpaper_fade",
 }
 
 

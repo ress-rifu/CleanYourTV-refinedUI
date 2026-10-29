@@ -1,5 +1,10 @@
 # The prompt
 
+> This is the prompt of **CleanYourTV refined UI**, a fork of
+> [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv) by [ress-rifu](https://github.com/ress-rifu):
+> the same debloat and safety rules, with a frosted-glass launcher, a RAM/Storage pill with Clean storage, a
+> sliding Settings panel, a full-screen app grid and smoother animations. See the README's "Refined UI" section.
+
 Paste this into Claude Code (or another coding assistant with shell access) on a computer that is
 on the same Wi-Fi as the TV. Works on Android TV / Google TV sets (Xiaomi, TCL, Hisense, Sony,
 OnePlus, Realme, Nvidia Shield and most others). It will not work on Samsung Tizen, LG webOS or
@@ -20,7 +25,7 @@ My TV model is: <MODEL NAME HERE>. Work on the real device, step by step, and ve
 do with screenshots pulled from the TV. Ask me before anything that depends on my preferences.
 Where these steps name a file under `tools/`, `docs/` or `examples/` that is not in your working
 folder, you are running without this repo: clone it first with
-`git clone https://github.com/Gathin23/cleanyourtv` and work from there, so `tools/disable.sh` and the
+`git clone https://github.com/ress-rifu/CleanYourTV-refinedUI` and work from there, so `tools/disable.sh` and the
 rest keep their safety checks, rather than stopping or writing your own.
 
 Connect
@@ -99,6 +104,17 @@ Debloat
   ([#884](https://github.com/Gathin23/cleanyourtv/issues/884)); `tools/disable.sh` refuses such a list.
 - Before touching streaming apps, voice assistant, Chromecast, Miracast or the update service, ask me
   which ones I use with a checklist question and disable only what I don't tick.
+- Before disabling YouTube (or another app a remote button names), find out what the button does: run
+  `logcat` while I press it. On some Realtek sets (Singer/Sanyo SCBC, `com.realtek.keyinterceptserver`) the
+  firmware starts `com.google.android.youtube.tv` itself; with the app disabled that service crashes on every
+  press, and once that came with a system restart that left the TV inputs empty until a power cycle. It cannot
+  be remapped to another app there, so tell me and let me choose (`examples/singer-atv-r1`).
+- On Android TV 9 the on-screen keyboard's voice typing goes through the Assistant
+  (`com.google.android.katniss`): tell me that when I untick the assistant.
+- Storage: you may trim app caches (`pm trim-caches 64G`, which keeps app data and sign-ins) and delete the
+  temporary files you made yourself (recordings, `uiautomator` dumps, pushed APKs). Do not delete my own files
+  (Downloads, pictures, APKs I saved): show me what is there with sizes and leave it to the launcher's Clean
+  storage button, which I press myself.
 - Run `pm` commands one per shell call, chained commands may silently stop after the first.
 - If `pm disable-user` is refused for every package, stop and tell me: some firmware (Fire OS 5 on a
   Fire TV Box, for one) refuses `pm disable-user` with a `SecurityException`, `pm uninstall --user 0`
@@ -190,6 +206,10 @@ Launcher
 - If you write the launcher yourself, make its theme explicitly opaque (`windowIsTranslucent`,
   `windowIsFloating` and `windowSwipeToDismiss` false): on some firmware `Theme.DeviceDefault` comes out
   translucent, the TV app keeps running under Home, and after an HDMI input the picture stays on screen.
+- Ask me which name the greeting on the home screen should use ("Good Morning, <name>"), or whether I want
+  the greeting without a name. Set it as `greeting_name` in `launcher/app/src/main/res/values/config.xml`
+  (empty: the greeting alone). Use exactly the spelling I give; never take a name from an account, the Wi-Fi
+  network or anything else on the TV.
 - Ask how many dock slots I want (4, 5, 6 or 7), which apps, and their order; keep four if I have no
   preference. The reference launcher already supports this: use `columns` and `dock_apps` in
   `launcher/app/src/main/res/values/config.xml` or a theme's `config.json`, without adding a new layout.
@@ -202,9 +222,36 @@ Launcher
   (showing the network name) and Settings; a greeting, a large thin clock and the date top left in a
   downloaded open-licence typeface such as Outfit. Inputs opens a compact glass dropdown under the pill
   listing the HDMI ports, AV and Live TV, switching via the TV input framework.
+- Refined UI (this fork; each part has a switch in `config.xml` and is on by default):
+  - Frosted glass (`frost_glass`) behind the top pills, every dropdown, the dock band (`dock_glass`) and the
+    Settings panel: a 128x72 copy of the wallpaper is box-blurred once when it loads and painted behind each
+    glass shape, under a light dark tint and a hairline edge. There is no live blur. White text on glass and
+    the clock, greeting and title on the wallpaper carry a soft shadow so they stay readable.
+  - A RAM / Storage pill (`show_system_pill`) where the Wi-Fi pill was (`show_network_pill` false). OK lists
+    the apps opened since the TV started (usage access) and closes their background processes; Clean
+    storage deletes Downloads, apps' external cache folders and thumbnail folders after a second OK, never
+    app data. `launcher/build-and-install.sh` grants the usage-access app-op and storage access.
+  - The Settings pill (`settings_pill_panel`) opens a frosted panel that slides in from the right over Home,
+    instead of the TV's Settings app, which is opaque on many sets and blacks Home out. Its Picture & sound
+    row opens the TV's own picture menu when `picture_menu_component` resolves (Realtek boards:
+    `com.realtek.tv.actionmenu/.ActionMenuActivity`, which opens over the screen); check with
+    `dumpsys package` and tell me that rows going into Android's own Settings pages still open them opaque.
+  - Down from the dock (`grid_full_screen`): the header slides up off the screen, the dock row moves up under
+    a small frosted clock at the top right, and the apps fill the screen; Up to the dock or Home brings it back.
+  - Motion: the first Home after a boot (`boot_pop_entrance`) fades the wallpaper in, then the greeting,
+    clock, date and pills one after another, then the tiles rise one by one, then the highlight and title;
+    the wallpaper fades in on every return from an app (`wallpaper_fade`); an app's window grows out of its
+    tile (`launch_zoom`); pills that appear fade in and the greeting cross-fades. A pill's text changes in
+    place: fading a pill would take its glass with it.
+- Ask me whether I want a wallpaper, and which one. If I name a picture, check its licence is fine for my
+  own use, then store it at the panel's resolution (`wm size`): a 4K picture on a 720p panel looks the same
+  but its decode on every return to Home leaves the screen black for about a second. Push it with
+  `tools/theme.sh` in a theme folder of my own, and never commit a picture I do not have the rights to.
 - Make D-pad navigation deterministic: Up/Down move exactly one row, Up from the dock goes to the top
   bar, the ends of the top bar don't fall through to tiles. Remember the last focused tile.
-- Keep it light: the TV has about 1 GB of RAM. No blur, no video, no network polling.
+- Keep it light: the TV has about 1 GB of RAM. No live blur (the glass is blurred once per picture), no
+  video, no network polling. Fade views with a hardware layer (`withLayer()`), and give tiles one while they
+  animate in.
 
 Verify
 - After each change, inject remote key presses over ADB, take a screenshot from the TV and look at it:
@@ -223,6 +270,13 @@ Verify
   wrong on some MediaTek Sony firmware, is not a launcher bug. An empty
   `settings get secure display_density_forced` is a normal default, not damage - read all three
   values first and put them back if you undo (`docs/TROUBLESHOOTING.md`).
+- Check animations by recording, not by single screenshots: `screenrecord --time-limit 8 /sdcard/x.mp4`
+  while the keys are injected, pull it, lay its frames out as a contact sheet
+  (`ffmpeg -i x.mp4 -vsync 0 f_%04d.png`, then the `tile` filter) and look for jumps, double entrances and
+  things appearing before they should; `dumpsys gfxinfo com.gathin.tvhome` (after `reset`) gives the janky
+  frame share. Delete the recordings from the TV afterwards.
+- I may be using the remote while you work, and my presses mix with yours: before you press OK, read the
+  focused view with `uiautomator dump` and stop injecting keys if focus is not where you left it.
 - If a remote button relies on an accessibility helper, check that the service is enabled and bound
   for the current user, then ask me to press the real button; an injected key is not proof (see
   `docs/TROUBLESHOOTING.md`).
@@ -231,5 +285,6 @@ Verify
 
 ---
 
-Expect to answer three or four checklist questions (which apps you use, the dock size and app order,
-whether to keep the voice assistant, Chromecast and firmware updates). Everything is reversible.
+Expect to answer four or five checklist questions (which apps you use, the dock size and app order, the
+name for the greeting, a wallpaper, whether to keep the voice assistant, Chromecast and firmware updates).
+Everything is reversible.

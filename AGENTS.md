@@ -4,6 +4,11 @@ Instructions for coding agents (Claude Code, Codex, Gemini CLI, Cursor, Copilot 
 this repository. People should start with [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md);
 this file repeats their rules in the form an agent needs, and links to them for the detail.
 
+## This fork
+
+A fork of Gathin23/cleanyourtv. Its launcher changes and three extra permissions are deliberate (README, first
+section). Ask the owner for `greeting_name`; commit no names or unlicensed wallpapers.
+
 ## First: which job are you doing?
 
 | You were asked to | Do this |
