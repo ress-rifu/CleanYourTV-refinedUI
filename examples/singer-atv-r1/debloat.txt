@@ -1,0 +1,61 @@
+# Singer ATV R1 (manufacturer SCBC, device R1, Realtek), Android TV 9 (API 28), firmware PTT1.201001.001,
+# ~1.5 GB RAM, 1280x720 panel. Same SCBC/Realtek platform as examples/sanyo-atv-r2.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/singer-atv-r1/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/singer-atv-r1/debloat.txt
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher is com.google.android.tvlauncher and Live TV is com.android.tv (set live_tv_package to it in
+# launcher/app/src/main/res/values/config.xml). leanbacklauncher is installed but does not claim HOME here.
+#
+# Notes from this TV:
+# - Keep com.realtek.leanbacklauncher.partnercustomizer: with it disabled the stock launcher loses its Inputs
+#   button (seen on the first batch, re-enabled at once).
+# - Keep com.google.android.katniss (Assistant) if you use voice typing: the on-screen keyboard's mic needs it.
+# - The remote's YouTube button (RC890S, scancode 723) is handled natively by com.realtek.keyinterceptserver, which
+#   starts com.google.android.youtube.tv itself. With YouTube disabled that service crashes and restarts on every
+#   press; once this came with a system_server restart that left TvInputManager empty (no Inputs pill, no Live TV
+#   tile) until a full power cycle. It cannot be remapped to another app: keep YouTube if you press that button.
+# - tools/disable.sh holds com.apps.function.gdpr, the leanback recommendations and the SCBC auto-installs back
+#   (no permission block to read for the input-driver check); all inputs worked after a reboot, so they were
+#   disabled with TVINPUT_ALLOW=1.
+# - Leave alone: com.rtk.engmenu, com.realtek.factorytools, com.apps.factory.ui (factory menus),
+#   com.apps.fivekey / smartkey / virtualkey, com.apps.bluetoothremote, com.functions.autopair,
+#   com.realtek.keyinterceptserver (remote), com.realtek.tv.* / com.realtek.dtv (HDMI, AV, tuner), com.apps.sys.
+# - com.realtek.tv.actionmenu/.ActionMenuActivity is the TV's own picture and sound menu and opens over the screen
+#   (translucent); the launcher's Settings panel uses it for Picture & sound. Android's TV Settings pages are opaque.
+# - A soft system restart (system_server crash) left the TV inputs unregistered until a full reboot.
+
+# SCBC / Vewd / Google telemetry and feedback
+com.apps.function.gdpr                 # SCBC data-consent agent (needs TVINPUT_ALLOW=1, see above)
+com.vewd.core.service                  # Vewd app-store/HbbTV core
+com.google.android.feedback
+com.google.android.tv.bugreportsender
+
+# Content rows, promos and auto-installs
+com.apps.channels                      # "S-Channel" content app (Firebase/measurement)
+com.apps.eshow                         # in-store demo
+com.apps.esticker                      # in-store sticker overlay service
+com.google.android.tvrecommendations
+com.google.android.leanbacklauncher.recommendations
+android.autoinstalls.config.scbc.device  # Play auto-installs of partner apps
+# com.realtek.leanbacklauncher.partnercustomizer  # KEEP: the stock launcher loses its Inputs button without it
+
+# Background services and duplicates
+com.apps.clear                         # "TV Booster" cleaner
+com.google.android.apps.nbu.smartconnect.tv
+com.apps.wifihotspot                   # TV as a Wi-Fi hotspot
+com.android.printspooler
+com.apps.networkspeed                  # speed-test app
+# com.apps.ota                         # firmware updates: disabled on the tested set at the owner's request
+# com.apps.authota                     # companion to com.apps.ota
+# com.google.android.katniss           # Assistant: the keyboard's voice typing needs it
+
+# Preloaded apps
+com.apps.timeclock                     # WorldClock
+com.google.android.play.games
+
+# Preloaded streaming apps (personal choice: comment out any you use)
+com.google.android.youtube.tv          # see the YouTube button note above before disabling
+com.google.android.youtube.tvmusic
+com.apps.usbmediaplayer                # Smart Player, plays media from USB drives

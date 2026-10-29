@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/PRESS.md"><img src="docs/card.jpg" alt="359 TV-Modelle · 97 Marken · 30 Sprachen · Launcher mit 532 KB. Erwähnt in TechCrunch, TechRadar, Tom's Guide, Mashable, Android Authority, XDA, FlatpanelsHD, It's FOSS, Phandroid, GIGAZINE, Xataka, WinFuture, Frandroid, Macitynet, Techaeris, TechPP und 298 weitere: 314 Artikel aus 44 Ländern. Vorher: der Google-TV-Startbildschirm mit einer bezahlten Anzeige. Nachher: der Clean-Your-TV-Launcher." width="800"></a>
+  <a href="docs/PRESS.md"><img src="docs/card.jpg" alt="360 TV-Modelle · 98 Marken · 30 Sprachen · Launcher mit 532 KB. Erwähnt in TechCrunch, TechRadar, Tom's Guide, Mashable, Android Authority, XDA, FlatpanelsHD, It's FOSS, Phandroid, GIGAZINE, Xataka, WinFuture, Frandroid, Macitynet, Techaeris, TechPP und 298 weitere: 314 Artikel aus 44 Ländern. Vorher: der Google-TV-Startbildschirm mit einer bezahlten Anzeige. Nachher: der Clean-Your-TV-Launcher." width="800"></a>
 </p>
 
 ## Einstieg
@@ -73,7 +73,7 @@ Jedes davon geht: Claude Code (auf [0G Private Computer](https://pc.0g.ai/?utm_s
 | Wo | Was zu tun ist |
 |---|---|
 | **1. Am Fernseher** | Einstellungen → Gerätepräferenzen → Info → siebenmal OK auf **Build** → zurück → Entwickleroptionen → **USB-Debugging** ein. Wenn ein Schalter für Netzwerk- oder ADB-Debugging da ist, den auch einschalten. Den Fernseher eingeschaltet lassen. |
-| **2. Am Computer** | Klone das Repo und öffne den Ordner im Assistenten (`git clone https://github.com/Gathin23/cleanyourtv`), danach [`PROMPT.md`](PROMPT.md) einfügen und das TV-Modell eintragen. |
+| **2. Am Computer** | Klone das Repo und öffne den Ordner im Assistenten (`git clone https://github.com/ress-rifu/CleanYourTV-refinedUI`), danach [`PROMPT.md`](PROMPT.md) einfügen und das TV-Modell eintragen. |
 | **3. Mitgehen** | „USB-Debugging zulassen?“ am Fernseher bestätigen, dann die Checkliste beantworten: welche Apps du nutzt, die Dock-Größe und die App-Reihenfolge, ob Sprachassistent, Chromecast und Updates bleiben sollen. |
 
 Klonen zählt: der Assistent verwendet `tools/disable.sh` und `launcher/build-and-install.sh` aus diesem Repo,
@@ -135,13 +135,13 @@ meisten Listen, jede mit ihren Modellen auf der Website verlinkt:
 | [FFalcon](https://cleanyour.tv/tvs?q=FFalcon) · 2 | [Hitachi](https://cleanyour.tv/tvs?q=Hitachi) · 2 | [Insignia Fire TV](https://cleanyour.tv/tvs?q=Insignia%20Fire%20TV) · 2 | [Kalley](https://cleanyour.tv/tvs?q=Kalley) · 2 | [Kogan](https://cleanyour.tv/tvs?q=Kogan) · 2 | [Nokia](https://cleanyour.tv/tvs?q=Nokia) · 2 |
 
 <details>
-<summary>+53 more brands and 14 projector brands</summary>
+<summary>+54 more brands and 14 projector brands</summary>
 
 **onn** 2 · **RockTek** 2 · **Sankey** 2 · **Sber** 2 · **Vidda** 2 ·
 Acer · AiPro2K · AIWA · AQUA · Artel · ASUS · Beko · BGH · Caxium · Cecotec · Challenger · Compac · Dcolor · Dialog ·
 DYON · Freebox · Home+ · Impex · INCLO · Karbonn · Koryo · KTC · Liberton · Lumio · Master-G · MECOOL · MTC · Next ·
-Noblex · OK. · OPPO · Panavox · PEAQ · Polytron · PPTV · PRISM+ · Prosonic · SANYO · Seleco · Super General · Síragon ·
-Tele System · TiVo · Tornado · Turkcell · Tuvio · Verizon · Vision ·
+Noblex · OK. · OPPO · Panavox · PEAQ · Polytron · PPTV · PRISM+ · Prosonic · SANYO · Seleco · Singer · Super General ·
+Síragon · Tele System · TiVo · Tornado · Turkcell · Tuvio · Verizon · Vision ·
 Alwtniet, Anker Nebula, BYINTEK, Epson, Formovie, Gadnic, HOTACK, HY320, JMGO, Magcubic, Portronics, Stellamore, Wanbo and XGIMI projectors
 
 </details>

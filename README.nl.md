@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/PRESS.md"><img src="docs/card.jpg" alt="359 tv-modellen · 97 merken · 30 talen · launcher van 523 KB. Genoemd in TechCrunch, TechRadar, Tom's Guide, Mashable, Android Authority, XDA, FlatpanelsHD, It's FOSS, Phandroid, GIGAZINE, Xataka, WinFuture, Frandroid, Macitynet, Techaeris, TechPP en nog 298 media: 314 artikelen uit 44 landen. Voorheen: het standaard Google TV-startscherm met een gesponsorde advertentie. Daarna: de Clean Your TV-launcher." width="800"></a>
+  <a href="docs/PRESS.md"><img src="docs/card.jpg" alt="360 tv-modellen · 98 merken · 30 talen · launcher van 523 KB. Genoemd in TechCrunch, TechRadar, Tom's Guide, Mashable, Android Authority, XDA, FlatpanelsHD, It's FOSS, Phandroid, GIGAZINE, Xataka, WinFuture, Frandroid, Macitynet, Techaeris, TechPP en nog 298 media: 314 artikelen uit 44 landen. Voorheen: het standaard Google TV-startscherm met een gesponsorde advertentie. Daarna: de Clean Your TV-launcher." width="800"></a>
 </p>
 
 **De virale tweet:** [x.com/gathint/status/2111379569030939102](https://x.com/gathint/status/2111379569030939102)
@@ -68,7 +68,7 @@ Je kunt onder meer Claude Code gebruiken (via [0G Private Computer](https://pc.0
 | Waar | Wat je moet doen |
 |---|---|
 | **1. Op de tv** | Instellingen → Apparaatvoorkeuren → Over → druk zeven keer op OK bij **Build** → ga terug → Ontwikkelaarsopties → schakel **USB-foutopsporing** in. Schakel ook Netwerk- of ADB-foutopsporing in als die optie beschikbaar is. Laat de tv aanstaan. |
-| **2. Op je computer** | Kloon de repository en open die map in je assistent (`git clone https://github.com/Gathin23/cleanyourtv`). Plak daarna de inhoud van [`PROMPT.md`](PROMPT.md) en vul je tv-model in. |
+| **2. Op je computer** | Kloon de repository en open die map in je assistent (`git clone https://github.com/ress-rifu/CleanYourTV-refinedUI`). Plak daarna de inhoud van [`PROMPT.md`](PROMPT.md) en vul je tv-model in. |
 | **3. Volg de stappen** | Accepteer op de tv de melding 'USB-foutopsporing toestaan?' en beantwoord daarna de checklist: welke apps je gebruikt, de grootte en volgorde van het dock, en of je de spraakassistent, Chromecast en updates wilt behouden. |
 
 Het klonen is belangrijk: de assistent gebruikt de scripts `tools/disable.sh` en `launcher/build-and-install.sh` uit deze repository in plaats van zelf scripts te schrijven. De back-up, de bescherming van het startscherm en het hersteloverzicht worden daar beheerd.
@@ -128,13 +128,13 @@ Tested lists from contributors, one folder per model in [`examples/`](examples/)
 | [FFalcon](https://cleanyour.tv/tvs?q=FFalcon) · 2 | [Hitachi](https://cleanyour.tv/tvs?q=Hitachi) · 2 | [Insignia Fire TV](https://cleanyour.tv/tvs?q=Insignia%20Fire%20TV) · 2 | [Kalley](https://cleanyour.tv/tvs?q=Kalley) · 2 | [Kogan](https://cleanyour.tv/tvs?q=Kogan) · 2 | [Nokia](https://cleanyour.tv/tvs?q=Nokia) · 2 |
 
 <details>
-<summary>+53 more brands and 14 projector brands</summary>
+<summary>+54 more brands and 14 projector brands</summary>
 
 **onn** 2 · **RockTek** 2 · **Sankey** 2 · **Sber** 2 · **Vidda** 2 ·
 Acer · AiPro2K · AIWA · AQUA · Artel · ASUS · Beko · BGH · Caxium · Cecotec · Challenger · Compac · Dcolor · Dialog ·
 DYON · Freebox · Home+ · Impex · INCLO · Karbonn · Koryo · KTC · Liberton · Lumio · Master-G · MECOOL · MTC · Next ·
-Noblex · OK. · OPPO · Panavox · PEAQ · Polytron · PPTV · PRISM+ · Prosonic · SANYO · Seleco · Super General · Síragon ·
-Tele System · TiVo · Tornado · Turkcell · Tuvio · Verizon · Vision ·
+Noblex · OK. · OPPO · Panavox · PEAQ · Polytron · PPTV · PRISM+ · Prosonic · SANYO · Seleco · Singer · Super General ·
+Síragon · Tele System · TiVo · Tornado · Turkcell · Tuvio · Verizon · Vision ·
 Alwtniet, Anker Nebula, BYINTEK, Epson, Formovie, Gadnic, HOTACK, HY320, JMGO, Magcubic, Portronics, Stellamore, Wanbo and XGIMI projectors
 
 </details>
@@ -313,6 +313,7 @@ Alwtniet, Anker Nebula, BYINTEK, Epson, Formovie, Gadnic, HOTACK, HY320, JMGO, M
 | SHARP AQUOS TVE21F (AQUOS-TVE21F, banqiao, CVTE/MediaTek), UK | Android TV 14 |
 | SHARP AQUOS TVE23A (AQUOS-TVE23A, sandiego, CVTE/MediaTek mt5889), Denmark | Google TV 14 |
 | SHARP AQUOS-TVX19B (AQUOS-TVX19B, gangnam, MediaTek m7322), Taiwan | Android TV 11 |
+| Singer ATV R1 (SCBC, Realtek) | Android TV 9 |
 | Skyworth / Coocaa 8R40_K5C (Realtek rtd285x, 1 GB, 32-bit), China domestic firmware | Android 8.0 (not Google TV) |
 | Skyworth 43E6A (open_fhd, MediaTek MT5886) | Android TV 8.0 |
 | Skyworth 65A3F (7T641_A3F, MediaTek MT9633), China | Android 13 (CCOS 10.01.250328) |
